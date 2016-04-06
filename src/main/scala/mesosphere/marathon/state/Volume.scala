@@ -152,16 +152,17 @@ object PersistentVolume {
   * volume names it has been observed that some storage provider implementations may refuse names greater
   * than 31 characters. YMMV. Although `name` is optional, some storage providers may require it.
   *
-  * `name` uniqueness:
+  * `name` uniqueness: // QUESTION: STTTS told me that this is not true for all providers
   *  <li> A volume name MUST be unique within the scope of a volume provider.
   *  <li> A fully-qualified volume name is expected to be unique across the cluster and may formed, for example,
   *       by concatenating the volume provider name with the volume name. E.g “dvdi.volume123”
   *
   * `providerName` is optional; if specified it indicates which storage provider will implement volume
-  * lifecycle management operations for the external volume. if unspecified, “agent” is assumed.
+  * lifecycle management operations for the external volume. if unspecified, “agent” is assumed. // NOT true anymore
   * the provider names “dcos”, “agent”, and "docker" are currently reserved. The contents of providerName
   * values are restricted to the alpha-numeric character range [a-z0-9].
   *
+  * // QUESTION: Clarify that these options are (typically?) applied during volume creation?
   * `options` contains provider-specific volume options. some items may be required in order for a volume
   * driver to function properly. Given a storage provider named “dvdi” all options specific to that
   * provider MUST be namespaced with a “dvdi/” prefix.
@@ -176,7 +177,7 @@ object PersistentVolume {
   */
 case class ExternalVolumeInfo(
   size: Option[Long] = None,
-  name: String,
+  name: String, // I would prefer volumeName
   providerName: String,
   options: Map[String, String] = Map.empty[String, String])
 

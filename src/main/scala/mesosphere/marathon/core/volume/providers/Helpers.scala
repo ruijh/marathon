@@ -14,7 +14,7 @@ protected[volume] abstract class AbstractExternalVolumeProvider(
     volume.external.providerName == name
   }
 
-  override def collect(container: Container): Iterable[ExternalVolume] =
+  def collect(container: Container): Iterable[ExternalVolume] =
     container.volumes.collect{
       case vol: ExternalVolume if accepts(vol) => vol
     }
