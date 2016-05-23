@@ -18,6 +18,7 @@ import scala.concurrent.Future
   *
   * More tests are in [[mesosphere.marathon.tasks.TaskTrackerImplTest]]
   */
+// FIXME (merge): integrate tests from StatusUpdateActionResolverTest
 class TaskStateOpResolverTest
     extends FunSuite with Mockito with GivenWhenThen with ScalaFutures with Matchers {
   import scala.concurrent.ExecutionContext.Implicits.global

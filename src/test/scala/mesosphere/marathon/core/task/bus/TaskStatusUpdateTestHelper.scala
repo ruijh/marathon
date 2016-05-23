@@ -4,8 +4,10 @@ import mesosphere.marathon.MarathonTestHelper
 import mesosphere.marathon.core.task.bus.TaskChangeObservables.TaskChanged
 import mesosphere.marathon.core.task.{ Task, TaskStateChange, TaskStateOp }
 import mesosphere.marathon.state.{ PathId, Timestamp }
-import org.apache.mesos.Protos.{ TaskStatus, TaskState }
+import org.apache.mesos.Protos.TaskStatus.Reason
+import org.apache.mesos.Protos.{ TaskState, TaskStatus }
 import org.joda.time.DateTime
+import org.slf4j.LoggerFactory
 
 class TaskStatusUpdateTestHelper(val wrapped: TaskChanged) {
   def simpleName = wrapped.stateOp match {
@@ -17,9 +19,12 @@ class TaskStatusUpdateTestHelper(val wrapped: TaskChanged) {
     case TaskStateOp.MesosUpdate(_, MarathonTaskStatus.WithMesosStatus(mesosStatus), _) => mesosStatus
     case _ => throw new scala.RuntimeException("the wrapped stateOp os no MesosUpdate!")
   }
+  def reason: TaskStatus.Reason = status.getReason
+
 }
 
 object TaskStatusUpdateTestHelper {
+  val log = LoggerFactory.getLogger(getClass)
   def apply(taskChanged: TaskChanged): TaskStatusUpdateTestHelper =
     new TaskStatusUpdateTestHelper(taskChanged)
 
@@ -68,7 +73,8 @@ object TaskStatusUpdateTestHelper {
 
   def finished(task: Task = defaultTask) = taskExpungeFor(task, makeTaskStatus(task, TaskState.TASK_FINISHED))
 
-  def lost(task: Task = defaultTask) = taskExpungeFor(task, makeTaskStatus(task, TaskState.TASK_LOST))
+  // FIXME (merge): LOST doers not necessarily lead to an expunge – match reason and eventually create an update!
+  def lost(reason: Reason, task: Task = defaultTask) = taskExpungeFor(task, makeTaskStatus(task, TaskState.TASK_LOST))
 
   def killed(task: Task = defaultTask) = taskExpungeFor(task, makeTaskStatus(task, TaskState.TASK_KILLED))
 

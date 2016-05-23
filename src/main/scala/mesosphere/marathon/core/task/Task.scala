@@ -81,6 +81,7 @@ object Task {
 
     private[this] def hasStartedRunning: Boolean = status.startedAt.isDefined
 
+    // FIXME (merge): case MesosTaskStatus.TemporarilyUnreachable(_) => updateTaskOnStateChange(task)
     //scalastyle:off cyclomatic.complexity method.length
     override def update(update: TaskStateOp): TaskStateChange = update match {
       // case 1: now running

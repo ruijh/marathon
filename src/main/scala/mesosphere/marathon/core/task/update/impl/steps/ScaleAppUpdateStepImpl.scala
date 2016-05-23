@@ -9,6 +9,7 @@ import mesosphere.marathon.core.task.{ Task, TaskStateChange, TaskStateOp }
 import mesosphere.marathon.core.task.bus.MarathonTaskStatus
 import mesosphere.marathon.core.task.bus.TaskChangeObservables.TaskChanged
 import mesosphere.marathon.core.task.update.TaskUpdateStep
+import org.apache.mesos.Protos.{ TaskStatus, TaskState }
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future
@@ -25,19 +26,30 @@ class ScaleAppUpdateStepImpl @Inject() (
 
   override def processUpdate(taskChanged: TaskChanged): Future[_] = {
 
+    // FIXME (merge): it's tedious that we can't use MesosTaskStatus here – merge these two, somehow!
     val terminalOrExpungedTask: Option[Task] = {
       (taskChanged.stateOp, taskChanged.stateChange) match {
         // stateOp is a terminal MesosUpdate
         case (TaskStateOp.MesosUpdate(task, MarathonTaskStatus.Terminal(_), _), _) => Some(task)
+
+        // A Lost task that might come back wouldN#t be included in Terminal(_)
+        case (TaskStateOp.MesosUpdate(task, MarathonTaskStatus.Lost(_), _), _) => Some(task)
+
         // stateChange is an expunge (probably because we expunged a timeout reservation)
         case (_, TaskStateChange.Expunge(task)) => Some(task)
+
         // no ScaleApp needed
         case _ => None
       }
     }
 
     terminalOrExpungedTask.foreach { task =>
-      log.info(s"initiating a scale check for app [${task.taskId.appId}] after ${task.taskId} terminated")
+      val appId = task.taskId.appId
+      val taskId = task.taskId
+      // FIXME (merge): task.mesosStatus shouldn't be an Option
+      val state = task.mesosStatus.fold(TaskState.TASK_STAGING)(_.getState)
+      val reason = task.mesosStatus.fold(TaskStatus.Reason.REASON_RECONCILIATION)(_.getReason)
+      log.info(s"initiating a scale check for app [$appId] due to [$taskId] $state $reason")
       log.info("schedulerActor: {}", schedulerActor)
       schedulerActor ! ScaleApp(task.taskId.appId)
     }

@@ -64,6 +64,7 @@ class MarathonTaskFormatTest extends MarathonSpec {
         |{
         |  "id": "/foo/bar",
         |  "host": "agent1.mesos",
+        |  "state": "TASK_STAGING"
         |  "ports": [],
         |  "startedAt": null,
         |  "stagedAt": "1970-01-01T00:00:01.024Z",
@@ -81,6 +82,7 @@ class MarathonTaskFormatTest extends MarathonSpec {
         |{
         |  "id": "/foo/bar",
         |  "host": "agent1.mesos",
+        |  "state": "TASK_STAGING"
         |  "ipAddresses": [
         |    {
         |      "ipAddress": "123.123.123.123",

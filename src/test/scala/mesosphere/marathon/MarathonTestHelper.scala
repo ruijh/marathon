@@ -477,11 +477,20 @@ object MarathonTestHelper {
       .buildPartial()
   }
 
-  def statusForState(taskId: String, state: Mesos.TaskState): Mesos.TaskStatus = {
+  def lostTask(id: String, reason: TaskStatus.Reason): Protos.MarathonTask = {
+    Protos.MarathonTask
+      .newBuilder()
+      .setId(id)
+      .setStatus(statusForState(id, TaskState.TASK_LOST))
+      .buildPartial()
+  }
+
+  def statusForState(taskId: String, state: Mesos.TaskState, maybeReason: Option[TaskStatus.Reason] = None): Mesos.TaskStatus = {
     Mesos.TaskStatus
       .newBuilder()
       .setTaskId(TaskID.newBuilder().setValue(taskId))
       .setState(state)
+      .setReason(maybeReason.getOrElse(TaskStatus.Reason.REASON_RECONCILIATION))
       .buildPartial()
   }
 
