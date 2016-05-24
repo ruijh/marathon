@@ -113,7 +113,6 @@ trait Formats
       "persistenceId" -> id.idString
     )
   }
-  // FIXME (merge): needed?
   implicit lazy val TaskStateFormat: Format[mesos.TaskState] =
     enumFormat(mesos.TaskState.valueOf, str => s"$str is not a valid TaskState type")
 
@@ -122,7 +121,7 @@ trait Formats
       "id" -> task.taskId,
       "slaveId" -> task.agentInfo.agentId,
       "host" -> task.agentInfo.host,
-      "state" -> "" // FIXME (merge): set the state correctly
+      "state" -> task.mesosStatus.fold(mesos.TaskState.TASK_STAGING)(_.getState)
     )
 
     val launched = task.launched.map { launched =>

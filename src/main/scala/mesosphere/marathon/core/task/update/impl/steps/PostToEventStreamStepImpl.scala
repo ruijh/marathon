@@ -4,10 +4,11 @@ import javax.inject.Named
 
 import akka.event.EventStream
 import com.google.inject.Inject
-import mesosphere.marathon.core.task.bus.MarathonTaskStatus
+import mesosphere.marathon.core.base.Clock
+import mesosphere.marathon.core.task.bus.MarathonTaskStatus.WithMesosStatus
 import mesosphere.marathon.core.task.bus.TaskChangeObservables.TaskChanged
 import mesosphere.marathon.core.task.update.TaskUpdateStep
-import mesosphere.marathon.core.task.{ Task, TaskStateOp }
+import mesosphere.marathon.core.task.{ EffectiveTaskStateChange, Task, TaskStateOp }
 import mesosphere.marathon.event.{ EventModule, MesosStatusUpdateEvent }
 import mesosphere.marathon.state.Timestamp
 import org.apache.mesos.Protos.TaskStatus
@@ -19,28 +20,38 @@ import scala.concurrent.Future
   * Post this update to the internal event stream.
   */
 class PostToEventStreamStepImpl @Inject() (
-    @Named(EventModule.busName) eventBus: EventStream) extends TaskUpdateStep {
+    @Named(EventModule.busName) eventBus: EventStream, clock: Clock) extends TaskUpdateStep {
+
   private[this] val log = LoggerFactory.getLogger(getClass)
 
   override def name: String = "postTaskStatusEvent"
 
   override def processUpdate(taskChanged: TaskChanged): Future[_] = {
-    taskChanged.stateOp match {
-      case TaskStateOp.MesosUpdate(task, MarathonTaskStatus.WithMesosStatus(mesosStatus), timestamp) =>
-        // if we receive a TaskStateOp.MesosUpdate it means someone else already decided that
-        // there has been a change which needs to be persisted – we can safely decide to publish this!
-        postEvent(timestamp, mesosStatus, task)
+    import TaskStateOp.MesosUpdate
+
+    taskChanged match {
+      // case 1: Mesos status update => update or expunge
+      case TaskChanged(MesosUpdate(_, WithMesosStatus(status), now), EffectiveTaskStateChange(task)) =>
+        postEvent(clock.now(), Some(status), task)
+
+      // case 2: Any TaskStateOp => update or expunge
+      case TaskChanged(_, EffectiveTaskStateChange(task)) =>
+        postEvent(clock.now(), task.mesosStatus, task)
 
       case _ =>
-      // ignore
+        log.debug("Ignoring noop for {}", taskChanged.taskId)
     }
 
     Future.successful(())
   }
 
-  private[this] def postEvent(timestamp: Timestamp, status: TaskStatus, task: Task): Unit = {
+  private[this] def postEvent(timestamp: Timestamp, maybeStatus: Option[TaskStatus], task: Task): Unit = {
     val taskId = task.taskId
-    task.launched.foreach { launched =>
+
+    for {
+      launched <- task.launched
+      status <- maybeStatus
+    } {
       log.info(
         "Sending event notification for {} of app [{}]: {}",
         Array[Object](taskId, taskId.appId, status.getState): _*

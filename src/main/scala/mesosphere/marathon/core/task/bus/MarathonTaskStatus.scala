@@ -7,6 +7,7 @@ sealed trait MarathonTaskStatus {
   def mesosStatus: Option[TaskStatus]
 }
 
+// FIXME (merge): Merge MarathonTaskStatus and MesosTaskStatus
 object MarathonTaskStatus {
   import org.apache.mesos.Protos.TaskState._
 

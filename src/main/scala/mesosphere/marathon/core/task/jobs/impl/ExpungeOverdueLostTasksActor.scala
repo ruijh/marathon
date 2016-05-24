@@ -40,7 +40,6 @@ class ExpungeOverdueLostTasksActor(
   }
 
   def expungeLostGCTask(task: Task): Unit = {
-    // FIXME (merge): it's super annoying that task.mesosStatus is an Option
     val timestamp = new DateTime(task.mesosStatus.fold(0L)(_.getTimestamp.toLong * 1000))
     log.warning(s"Task ${task.taskId} is lost since $timestamp and will be expunged.")
     val stateOp = TaskStateOp.ForceExpunge(task.taskId)

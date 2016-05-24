@@ -31,7 +31,6 @@ object LaunchQueue {
     /**
       * This is the final number of tasks, the launch queue tries to reach for this app.
       */
-    // FIXME (merge): correct to subtract tasksLost?
     def finalTaskCount: Int = tasksLaunched + taskLaunchesInFlight + tasksLeftToLaunch - tasksLost
   }
 }

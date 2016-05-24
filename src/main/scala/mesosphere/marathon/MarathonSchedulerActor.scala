@@ -518,6 +518,8 @@ class SchedulerActions(
     */
   // FIXME: extract computation into a function that can be easily tested
   def scale(driver: SchedulerDriver, app: AppDefinition): Unit = {
+    import SchedulerActions._
+
     // FIXME (merge): there are now 2 filters ...
     val launchedCount = taskTracker.countLaunchedAppTasksSync(app.id,
       _.mesosStatus.fold(false)(_.getState != TaskState.TASK_LOST))
@@ -541,17 +543,10 @@ class SchedulerActions(
       log.info(s"Scaling ${app.id} from $launchedCount down to $targetCount instances")
       launchQueue.purge(app.id)
 
-      // FIXME (merge): resolve this
-      //      val toKill = taskTracker.appTasksSync(app.id).toSeq
-      //        .filter(t => runningOrStaged.get(t.getStatus.getState).nonEmpty)
-      //        .sortWith(sortByStateAndTime)
-      //        .take(currentCount - targetCount)
-      //      log.info(s"Killing tasks: ${toKill.map(_.getId)}")
-      //      for (task <- toKill) {
-      //        driver.killTask(protos.TaskID(task.getId))
-      //      }
-
-      val toKill = taskTracker.appTasksLaunchedSync(app.id).take(launchedCount - targetCount)
+      val toKill = taskTracker.appTasksSync(app.id).toSeq
+        .filter(t => t.mesosStatus.fold(false)(status => runningOrStaged.get(status.getState).nonEmpty))
+        .sortWith(sortByStateAndTime)
+        .take(launchedCount - targetCount)
       val taskIds: Iterable[TaskID] = toKill.flatMap(_.launchedMesosId)
       log.info(s"Killing tasks: ${taskIds.map(_.getValue)}")
       for (taskId <- taskIds) {
@@ -574,7 +569,6 @@ class SchedulerActions(
     appRepository.currentVersion(appId)
 }
 
-// FIXME (merge): resolve this - must status.mesosStatus be an Option?
 private[this] object SchedulerActions {
   def sortByStateAndTime(a: Task, b: Task): Boolean = {
 
@@ -585,9 +579,9 @@ private[this] object SchedulerActions {
     opt(a.mesosStatus, b.mesosStatus, a.mesosStatus.isDefined) { (aStatus, bStatus) =>
       runningOrStaged(bStatus.getState) compareTo runningOrStaged(aStatus.getState) match {
         case 0 => opt(a.launched, b.launched, a.launched.isDefined) { (aLaunched, bLaunched) =>
-          (aLaunched.status.stagedAt compareTo bLaunched.status.stagedAt) < 0
+          (aLaunched.status.stagedAt compareTo bLaunched.status.stagedAt) > 0
         }
-        case value: Int => value < 0
+        case value: Int => value > 0
       }
     }
 

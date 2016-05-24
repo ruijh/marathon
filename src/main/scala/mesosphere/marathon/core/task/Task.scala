@@ -38,6 +38,7 @@ sealed trait Task {
     taskId.mesosTaskId
   }
 
+  // FIXME (merge): remove this accessor and add a universal Status to all tasks that includes unconfirmed states
   def mesosStatus: Option[MesosProtos.TaskStatus] = {
     launched.flatMap(_.status.mesosStatus).orElse {
       launchedMesosId.map { mesosId =>
@@ -81,7 +82,6 @@ object Task {
 
     private[this] def hasStartedRunning: Boolean = status.startedAt.isDefined
 
-    // FIXME (merge): case MesosTaskStatus.TemporarilyUnreachable(_) => updateTaskOnStateChange(task)
     //scalastyle:off cyclomatic.complexity method.length
     override def update(update: TaskStateOp): TaskStateChange = update match {
       // case 1: now running
@@ -93,8 +93,9 @@ object Task {
         TaskStateChange.Update(newState = updated, oldState = Some(this))
 
       // case 2: terminal
-      case TaskStateOp.MesosUpdate(_, MarathonTaskStatus.Terminal(_), now) =>
-        TaskStateChange.Expunge(this)
+      case TaskStateOp.MesosUpdate(_, MarathonTaskStatus.Terminal(updatedStatus), now) =>
+        val updated = copy(status = status.copy(mesosStatus = updatedStatus.mesosStatus))
+        TaskStateChange.Expunge(updated)
 
       // case 3: health or state updated
       case TaskStateOp.MesosUpdate(_, taskStatus, now) =>

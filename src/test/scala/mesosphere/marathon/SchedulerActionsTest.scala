@@ -133,7 +133,7 @@ class SchedulerActionsTest
     Given("An active queue and lost tasks")
     val app = MarathonTestHelper.makeBasicApp().copy(instances = 15)
     f.queue.get(app.id) returns None
-    f.taskTracker.countAppTasksSync(eq(app.id), any) returns 10
+    f.taskTracker.countLaunchedAppTasksSync(eq(app.id), any) returns 10
 
     When("the app is scaled")
     f.scheduler.scale(f.driver, app)
@@ -159,7 +159,7 @@ class SchedulerActionsTest
       tasksLost = 0,
       backOffUntil = f.clock.now())
 
-    def stagedTask(id: String, stagedAt: Long) = MarathonTestHelper.stagedTask("task_2", stagedAt = stagedAt)
+    def stagedTask(id: String, stagedAt: Long) = MarathonTestHelper.stagedTask(id, stagedAt = stagedAt)
 
     val tasks = Seq(
       MarathonTestHelper.runningTask(s"running-1"),
@@ -172,7 +172,7 @@ class SchedulerActionsTest
     )
 
     f.queue.get(app.id) returns Some(queued)
-    f.taskTracker.countAppTasksSync(eq(app.id), any) returns 7
+    f.taskTracker.countLaunchedAppTasksSync(eq(app.id), any) returns 7
     f.taskTracker.appTasksSync(app.id) returns tasks
     When("the app is scaled")
     f.scheduler.scale(f.driver, app)
@@ -192,7 +192,7 @@ class SchedulerActionsTest
     Given("an inactive queue, running tasks and some overCapacity")
     val app = MarathonTestHelper.makeBasicApp().copy(instances = 5)
 
-    def runningTask(id: String, stagedAt: Long) = MarathonTestHelper.runningTask("task_2", stagedAt = stagedAt)
+    def runningTask(id: String, stagedAt: Long) = MarathonTestHelper.runningTask(id, stagedAt = stagedAt)
 
     val tasks = Seq(
       runningTask(s"running-3", stagedAt = 3L),
@@ -205,7 +205,7 @@ class SchedulerActionsTest
     )
 
     f.queue.get(app.id) returns None
-    f.taskTracker.countAppTasksSync(eq(app.id), any) returns 7
+    f.taskTracker.countLaunchedAppTasksSync(eq(app.id), any) returns 7
     f.taskTracker.appTasksSync(app.id) returns tasks
     When("the app is scaled")
     f.scheduler.scale(f.driver, app)
@@ -232,8 +232,8 @@ class SchedulerActionsTest
       tasksLost = 0,
       backOffUntil = f.clock.now())
 
-    def stagedTask(id: String, stagedAt: Long) = MarathonTestHelper.stagedTask("task_2", stagedAt = stagedAt)
-    def runningTask(id: String, stagedAt: Long) = MarathonTestHelper.runningTask("task_2", stagedAt = stagedAt)
+    def stagedTask(id: String, stagedAt: Long) = MarathonTestHelper.stagedTask(id, stagedAt = stagedAt)
+    def runningTask(id: String, stagedAt: Long) = MarathonTestHelper.runningTask(id, stagedAt = stagedAt)
 
     val tasks = Seq(
       runningTask(s"running-3", stagedAt = 3L),
@@ -244,7 +244,7 @@ class SchedulerActionsTest
     )
 
     f.queue.get(app.id) returns Some(queued)
-    f.taskTracker.countAppTasksSync(eq(app.id), any) returns 5
+    f.taskTracker.countLaunchedAppTasksSync(eq(app.id), any) returns 5
     f.taskTracker.appTasksSync(app.id) returns tasks
     When("the app is scaled")
     f.scheduler.scale(f.driver, app)

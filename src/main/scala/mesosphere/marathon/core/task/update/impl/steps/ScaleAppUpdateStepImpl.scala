@@ -26,7 +26,6 @@ class ScaleAppUpdateStepImpl @Inject() (
 
   override def processUpdate(taskChanged: TaskChanged): Future[_] = {
 
-    // FIXME (merge): it's tedious that we can't use MesosTaskStatus here – merge these two, somehow!
     val terminalOrExpungedTask: Option[Task] = {
       (taskChanged.stateOp, taskChanged.stateChange) match {
         // stateOp is a terminal MesosUpdate
@@ -46,7 +45,6 @@ class ScaleAppUpdateStepImpl @Inject() (
     terminalOrExpungedTask.foreach { task =>
       val appId = task.taskId.appId
       val taskId = task.taskId
-      // FIXME (merge): task.mesosStatus shouldn't be an Option
       val state = task.mesosStatus.fold(TaskState.TASK_STAGING)(_.getState)
       val reason = task.mesosStatus.fold(TaskStatus.Reason.REASON_RECONCILIATION)(_.getReason)
       log.info(s"initiating a scale check for app [$appId] due to [$taskId] $state $reason")
